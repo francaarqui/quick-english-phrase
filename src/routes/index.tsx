@@ -233,13 +233,15 @@ function Index() {
             <button
               type="button"
               onClick={handleTranslate}
-              className="group inline-flex cursor-pointer items-center gap-3 rounded-2xl bg-primary px-10 py-5 text-lg font-semibold text-primary-foreground transition-all hover:bg-secondary hover:shadow-lg hover:shadow-primary/20 active:scale-95"
+              disabled={isLoading}
+              className="group inline-flex cursor-pointer items-center gap-3 rounded-2xl bg-primary px-10 py-5 text-lg font-semibold text-primary-foreground transition-all hover:bg-secondary hover:shadow-lg hover:shadow-primary/20 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Traduzir
+              {isLoading ? "Traduzindo..." : "Traduzir"}
               <span className="transition-transform group-hover:translate-x-1">
                 →
               </span>
             </button>
+
           </div>
 
           <div className="mt-12 border-t border-primary/5 pt-12">
