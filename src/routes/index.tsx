@@ -52,40 +52,12 @@ interface SavedPhrase {
   id: string;
   portuguese: string;
   english: string;
+  pronunciation?: string;
   context: string;
 }
 
 const STORAGE_KEY = "english-easy-phrases";
 
-function fakeTranslate(text: string): string {
-  const lower = text.toLowerCase().trim();
-  const common: Record<string, string> = {
-    "bom dia": "good morning",
-    "boa tarde": "good afternoon",
-    "boa noite": "good evening",
-    "obrigado": "thank you",
-    "obrigada": "thank you",
-    "por favor": "please",
-    "com licença": "excuse me",
-    "desculpa": "sorry",
-    "onde fica": "where is",
-    "quanto custa": "how much does it cost",
-    "não entendi": "I didn't understand",
-    "pode repetir": "can you repeat",
-    "sim": "yes",
-    "não": "no",
-    "tudo bem": "everything is fine",
-    "como vai": "how are you",
-  };
-
-  for (const [pt, en] of Object.entries(common)) {
-    if (lower.includes(pt)) {
-      return en;
-    }
-  }
-
-  return "English translation coming soon";
-}
 
 function loadSavedPhrases(): SavedPhrase[] {
   if (typeof window === "undefined") return [];
