@@ -73,12 +73,41 @@ function savePhrases(phrases: SavedPhrase[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(phrases));
 }
 
-function speak(text: string) {
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = "en-US";
-  utterance.rate = 0.9;
-  window.speechSynthesis.speak(utterance);
+const audioCache = new Map<string, string>();
+let currentAudio: HTMLAudioElement | null = null;
+
+async function fetchEnglishAudio(text: string): Promise<string> {
+  const cached = audioCache.get(text);
+  if (cached) return cached;
+
+  const res = await fetch("/api/speech", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    if (res.status === 429) throw new Error("Muitos áudios em pouco tempo. Tente de novo em instantes.");
+    if (res.status === 402) throw new Error("Os créditos de IA acabaram. Adicione créditos para ouvir o áudio.");
+    throw new Error(detail?.slice(0, 160) || "Não consegui gerar o áudio agora.");
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  audioCache.set(text, url);
+  return url;
 }
+
+async function playEnglishAudio(text: string) {
+  const url = await fetchEnglishAudio(text);
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+  }
+  const audio = new Audio(url);
+  currentAudio = audio;
+  await audio.play();
+}
+
 
 function Index() {
   const translate = useServerFn(translatePhrase);
