@@ -357,15 +357,21 @@ function Index() {
                     </p>
                   </div>
 
-                  <div className="mt-6 flex gap-3">
+                  {audioError && (
+                    <p className="text-sm font-medium text-destructive">{audioError}</p>
+                  )}
+
+                  <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                     <button
                       type="button"
-                      onClick={() => speak(result.english)}
-                      className="flex h-10 w-28 cursor-pointer items-center justify-center gap-2 rounded-full bg-card text-xs font-bold text-primary shadow-sm transition-colors hover:bg-primary hover:text-primary-foreground"
+                      onClick={() => handleSpeak("result", result.english)}
+                      disabled={speakingKey !== null}
+                      className="flex h-14 w-full cursor-pointer items-center justify-center gap-3 rounded-2xl bg-primary px-8 text-base font-bold text-primary-foreground shadow-md transition-all hover:bg-secondary active:scale-95 disabled:opacity-60 sm:w-auto"
                     >
-                      <Volume2 className="size-4" />
-                      OUVIR
+                      <Volume2 className="size-5" />
+                      {speakingKey === "result" ? "Carregando áudio..." : "🔊 Ouvir"}
                     </button>
+
                     <button
                       type="button"
                       onClick={() => navigator.clipboard.writeText(result.english)}
