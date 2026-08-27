@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Volume2, Trash2 } from "lucide-react";
 import studyScene from "../assets/study-scene.jpg";
 
 export const Route = createFileRoute("/")({
@@ -27,10 +28,90 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
+const CONTEXTS = [
+  "Conversa normal",
+  "Aeroporto",
+  "Hotel",
+  "Restaurante",
+  "Padaria",
+  "Mercado",
+  "Estação de metrô",
+  "Transporte",
+  "Compras",
+  "Trabalho",
+  "Outros",
+];
+
+interface SavedPhrase {
+  id: string;
+  portuguese: string;
+  english: string;
+  context: string;
+}
+
+const STORAGE_KEY = "english-easy-phrases";
+
+function fakeTranslate(text: string): string {
+  const lower = text.toLowerCase().trim();
+  const common: Record<string, string> = {
+    "bom dia": "good morning",
+    "boa tarde": "good afternoon",
+    "boa noite": "good evening",
+    "obrigado": "thank you",
+    "obrigada": "thank you",
+    "por favor": "please",
+    "com licença": "excuse me",
+    "desculpa": "sorry",
+    "onde fica": "where is",
+    "quanto custa": "how much does it cost",
+    "não entendi": "I didn't understand",
+    "pode repetir": "can you repeat",
+    "sim": "yes",
+    "não": "no",
+    "tudo bem": "everything is fine",
+    "como vai": "how are you",
+  };
+
+  for (const [pt, en] of Object.entries(common)) {
+    if (lower.includes(pt)) {
+      return en;
+    }
+  }
+
+  return "English translation coming soon";
+}
+
+function loadSavedPhrases(): SavedPhrase[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePhrases(phrases: SavedPhrase[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(phrases));
+}
+
+function speak(text: string) {
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "en-US";
+  utterance.rate = 0.9;
+  window.speechSynthesis.speak(utterance);
+}
+
 function Index() {
   const [phrase, setPhrase] = useState("");
+  const [selectedContext, setSelectedContext] = useState<string>(CONTEXTS[0] ?? "Conversa normal");
   const [result, setResult] = useState("");
   const [isTranslated, setIsTranslated] = useState(false);
+  const [savedPhrases, setSavedPhrases] = useState<SavedPhrase[]>([]);
+
+  useEffect(() => {
+    setSavedPhrases(loadSavedPhrases());
+  }, []);
 
   const handleTranslate = () => {
     if (!phrase.trim()) {
@@ -39,11 +120,20 @@ function Index() {
       return;
     }
 
-    // Simulação local: sem API externa
-    setResult(
-      "Aqui aparecerá a tradução da sua frase quando a API for conectada."
-    );
+    const english = fakeTranslate(phrase);
+    setResult(english);
     setIsTranslated(true);
+
+    const newPhrase: SavedPhrase = {
+      id: crypto.randomUUID(),
+      portuguese: phrase.trim(),
+      english,
+      context: selectedContext,
+    };
+
+    const updated = [newPhrase, ...savedPhrases];
+    setSavedPhrases(updated);
+    savePhrases(updated);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -51,6 +141,25 @@ function Index() {
       handleTranslate();
     }
   };
+
+  const handleDelete = (id: string) => {
+    const updated = savedPhrases.filter((p) => p.id !== id);
+    setSavedPhrases(updated);
+    savePhrases(updated);
+  };
+
+  const phrasesByContext = savedPhrases.reduce(
+    (acc, phrase) => {
+      const existing = acc[phrase.context];
+      if (existing) {
+        existing.push(phrase);
+      } else {
+        acc[phrase.context] = [phrase];
+      }
+      return acc;
+    },
+    {} as Record<string, SavedPhrase[]>
+  );
 
   return (
     <div className="min-h-screen bg-background font-sans text-foreground selection:bg-secondary/30">
@@ -101,6 +210,28 @@ function Index() {
             />
           </div>
 
+          <div className="space-y-3">
+            <label className="ml-1 text-xs font-semibold uppercase tracking-widest text-primary">
+              Contexto
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {CONTEXTS.map((context) => (
+                <button
+                  key={context}
+                  type="button"
+                  onClick={() => setSelectedContext(context)}
+                  className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
+                    selectedContext === context
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-background text-muted-foreground hover:bg-secondary/20 hover:text-foreground"
+                  }`}
+                >
+                  {context}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="flex justify-center lg:justify-end">
             <button
               type="button"
@@ -138,8 +269,10 @@ function Index() {
                 <div className="mt-6 flex gap-3">
                   <button
                     type="button"
-                    className="flex h-10 w-28 cursor-pointer items-center justify-center rounded-full bg-card text-xs font-bold text-primary shadow-sm transition-colors hover:bg-primary hover:text-primary-foreground"
+                    onClick={() => speak(result)}
+                    className="flex h-10 w-28 cursor-pointer items-center justify-center gap-2 rounded-full bg-card text-xs font-bold text-primary shadow-sm transition-colors hover:bg-primary hover:text-primary-foreground"
                   >
+                    <Volume2 className="size-4" />
                     OUVIR
                   </button>
                   <button
@@ -153,6 +286,73 @@ function Index() {
               )}
             </div>
           </div>
+        </div>
+
+        <div className="mt-20">
+          <div className="mb-8 flex items-center gap-4">
+            <h2 className="text-2xl font-bold">Minhas frases</h2>
+            <span className="rounded-full bg-secondary/20 px-3 py-1 text-xs font-semibold text-secondary">
+              {savedPhrases.length}
+            </span>
+          </div>
+
+          {savedPhrases.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-primary/20 bg-card/50 p-12 text-center">
+              <p className="text-muted-foreground">
+                Nenhuma frase salva ainda. Traduza sua primeira frase acima!
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {Object.entries(phrasesByContext).map(([context, phrases]) => (
+                <div key={context} className="space-y-4">
+                  <h3 className="text-sm font-semibold uppercase tracking-widest text-primary">
+                    {context}
+                  </h3>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {phrases.map((saved) => (
+                      <div
+                        key={saved.id}
+                        className="rounded-2xl border border-primary/5 bg-card p-5 shadow-sm"
+                      >
+                        <div className="mb-3 flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium text-muted-foreground">
+                              {saved.portuguese}
+                            </p>
+                            <p className="mt-1 text-lg font-semibold text-primary">
+                              {saved.english}
+                            </p>
+                          </div>
+                          <span className="shrink-0 rounded-full bg-secondary/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-secondary">
+                            {saved.context}
+                          </span>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => speak(saved.english)}
+                            className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+                          >
+                            <Volume2 className="size-4" />
+                            Ouvir
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(saved.id)}
+                            className="flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-destructive/10 px-3 py-2 text-xs font-semibold text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground"
+                          >
+                            <Trash2 className="size-4" />
+                            Excluir
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="mt-20 grid grid-cols-1 gap-8 md:grid-cols-3">
@@ -191,6 +391,8 @@ function Index() {
             alt="Cena minimalista de estudos com laptop e caderno em uma mesa branca"
             className="h-48 w-full rounded-3xl object-cover"
             loading="lazy"
+            width={1200}
+            height={512}
           />
         </div>
       </main>
