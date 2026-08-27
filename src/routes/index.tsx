@@ -117,6 +117,26 @@ function Index() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [savedPhrases, setSavedPhrases] = useState<SavedPhrase[]>([]);
+  const [speakingKey, setSpeakingKey] = useState<string | null>(null);
+  const [audioError, setAudioError] = useState("");
+
+  const handleSpeak = async (key: string, text: string) => {
+    if (speakingKey || !text) return;
+    setAudioError("");
+    setSpeakingKey(key);
+    try {
+      await playEnglishAudio(text);
+    } catch (err) {
+      setAudioError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Não consegui gerar o áudio agora."
+      );
+    } finally {
+      setSpeakingKey(null);
+    }
+  };
+
 
   useEffect(() => {
     setSavedPhrases(loadSavedPhrases());
