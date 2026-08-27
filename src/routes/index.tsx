@@ -436,12 +436,14 @@ function Index() {
                         <div className="flex gap-2">
                           <button
                             type="button"
-                            onClick={() => speak(saved.english)}
-                            className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+                            onClick={() => handleSpeak(saved.id, saved.english)}
+                            disabled={speakingKey !== null}
+                            className="flex h-12 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary/10 px-3 text-sm font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground active:scale-95 disabled:opacity-60"
                           >
-                            <Volume2 className="size-4" />
-                            Ouvir
+                            <Volume2 className="size-5" />
+                            {speakingKey === saved.id ? "..." : "🔊 Ouvir"}
                           </button>
+
                           <button
                             type="button"
                             onClick={() => handleDelete(saved.id)}
