@@ -365,6 +365,12 @@ function Index() {
                             <p className="mt-1 text-lg font-semibold text-primary">
                               {saved.english}
                             </p>
+                            {saved.pronunciation && (
+                              <p className="mt-1 text-sm italic text-secondary">
+                                {saved.pronunciation}
+                              </p>
+                            )}
+
                           </div>
                           <span className="shrink-0 rounded-full bg-secondary/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-secondary">
                             {saved.context}
