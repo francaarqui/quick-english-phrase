@@ -104,7 +104,7 @@ function speak(text: string) {
 
 function Index() {
   const [phrase, setPhrase] = useState("");
-  const [selectedContext, setSelectedContext] = useState(CONTEXTS[0]);
+  const [selectedContext, setSelectedContext] = useState<string>(CONTEXTS[0] ?? "Conversa normal");
   const [result, setResult] = useState("");
   const [isTranslated, setIsTranslated] = useState(false);
   const [savedPhrases, setSavedPhrases] = useState<SavedPhrase[]>([]);
@@ -150,10 +150,12 @@ function Index() {
 
   const phrasesByContext = savedPhrases.reduce(
     (acc, phrase) => {
-      if (!acc[phrase.context]) {
-        acc[phrase.context] = [];
+      const existing = acc[phrase.context];
+      if (existing) {
+        existing.push(phrase);
+      } else {
+        acc[phrase.context] = [phrase];
       }
-      acc[phrase.context].push(phrase);
       return acc;
     },
     {} as Record<string, SavedPhrase[]>
