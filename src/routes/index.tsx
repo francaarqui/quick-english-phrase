@@ -103,38 +103,57 @@ function speak(text: string) {
 }
 
 function Index() {
+  const translate = useServerFn(translatePhrase);
   const [phrase, setPhrase] = useState("");
   const [selectedContext, setSelectedContext] = useState<string>(CONTEXTS[0] ?? "Conversa normal");
-  const [result, setResult] = useState("");
-  const [isTranslated, setIsTranslated] = useState(false);
+  const [result, setResult] = useState<TranslationResult | null>(null);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [savedPhrases, setSavedPhrases] = useState<SavedPhrase[]>([]);
 
   useEffect(() => {
     setSavedPhrases(loadSavedPhrases());
   }, []);
 
-  const handleTranslate = () => {
+  const handleTranslate = async () => {
+    if (isLoading) return;
     if (!phrase.trim()) {
-      setResult("Digite uma frase acima para ver a tradução.");
-      setIsTranslated(false);
+      setResult(null);
+      setError("Digite uma frase acima para ver a tradução.");
       return;
     }
 
-    const english = fakeTranslate(phrase);
-    setResult(english);
-    setIsTranslated(true);
+    setError("");
+    setIsLoading(true);
+    try {
+      const translation = await translate({
+        data: { text: phrase.trim(), context: selectedContext },
+      });
+      setResult(translation);
 
-    const newPhrase: SavedPhrase = {
-      id: crypto.randomUUID(),
-      portuguese: phrase.trim(),
-      english,
-      context: selectedContext,
-    };
+      const newPhrase: SavedPhrase = {
+        id: crypto.randomUUID(),
+        portuguese: translation.portuguese,
+        english: translation.english,
+        pronunciation: translation.pronunciation,
+        context: translation.context,
+      };
 
-    const updated = [newPhrase, ...savedPhrases];
-    setSavedPhrases(updated);
-    savePhrases(updated);
+      const updated = [newPhrase, ...savedPhrases];
+      setSavedPhrases(updated);
+      savePhrases(updated);
+    } catch (err) {
+      setResult(null);
+      setError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Não foi possível traduzir agora. Tente novamente."
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
+
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
