@@ -73,12 +73,41 @@ function savePhrases(phrases: SavedPhrase[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(phrases));
 }
 
-function speak(text: string) {
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = "en-US";
-  utterance.rate = 0.9;
-  window.speechSynthesis.speak(utterance);
+const audioCache = new Map<string, string>();
+let currentAudio: HTMLAudioElement | null = null;
+
+async function fetchEnglishAudio(text: string): Promise<string> {
+  const cached = audioCache.get(text);
+  if (cached) return cached;
+
+  const res = await fetch("/api/speech", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    if (res.status === 429) throw new Error("Muitos áudios em pouco tempo. Tente de novo em instantes.");
+    if (res.status === 402) throw new Error("Os créditos de IA acabaram. Adicione créditos para ouvir o áudio.");
+    throw new Error(detail?.slice(0, 160) || "Não consegui gerar o áudio agora.");
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  audioCache.set(text, url);
+  return url;
 }
+
+async function playEnglishAudio(text: string) {
+  const url = await fetchEnglishAudio(text);
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+  }
+  const audio = new Audio(url);
+  currentAudio = audio;
+  await audio.play();
+}
+
 
 function Index() {
   const translate = useServerFn(translatePhrase);
@@ -88,6 +117,26 @@ function Index() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [savedPhrases, setSavedPhrases] = useState<SavedPhrase[]>([]);
+  const [speakingKey, setSpeakingKey] = useState<string | null>(null);
+  const [audioError, setAudioError] = useState("");
+
+  const handleSpeak = async (key: string, text: string) => {
+    if (speakingKey || !text) return;
+    setAudioError("");
+    setSpeakingKey(key);
+    try {
+      await playEnglishAudio(text);
+    } catch (err) {
+      setAudioError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Não consegui gerar o áudio agora."
+      );
+    } finally {
+      setSpeakingKey(null);
+    }
+  };
+
 
   useEffect(() => {
     setSavedPhrases(loadSavedPhrases());
@@ -308,15 +357,21 @@ function Index() {
                     </p>
                   </div>
 
-                  <div className="mt-6 flex gap-3">
+                  {audioError && (
+                    <p className="text-sm font-medium text-destructive">{audioError}</p>
+                  )}
+
+                  <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                     <button
                       type="button"
-                      onClick={() => speak(result.english)}
-                      className="flex h-10 w-28 cursor-pointer items-center justify-center gap-2 rounded-full bg-card text-xs font-bold text-primary shadow-sm transition-colors hover:bg-primary hover:text-primary-foreground"
+                      onClick={() => handleSpeak("result", result.english)}
+                      disabled={speakingKey !== null}
+                      className="flex h-14 w-full cursor-pointer items-center justify-center gap-3 rounded-2xl bg-primary px-8 text-base font-bold text-primary-foreground shadow-md transition-all hover:bg-secondary active:scale-95 disabled:opacity-60 sm:w-auto"
                     >
-                      <Volume2 className="size-4" />
-                      OUVIR
+                      <Volume2 className="size-5" />
+                      {speakingKey === "result" ? "Carregando áudio..." : "🔊 Ouvir"}
                     </button>
+
                     <button
                       type="button"
                       onClick={() => navigator.clipboard.writeText(result.english)}
@@ -381,12 +436,14 @@ function Index() {
                         <div className="flex gap-2">
                           <button
                             type="button"
-                            onClick={() => speak(saved.english)}
-                            className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
+                            onClick={() => handleSpeak(saved.id, saved.english)}
+                            disabled={speakingKey !== null}
+                            className="flex h-12 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-primary/10 px-3 text-sm font-bold text-primary transition-colors hover:bg-primary hover:text-primary-foreground active:scale-95 disabled:opacity-60"
                           >
-                            <Volume2 className="size-4" />
-                            Ouvir
+                            <Volume2 className="size-5" />
+                            {speakingKey === saved.id ? "..." : "🔊 Ouvir"}
                           </button>
+
                           <button
                             type="button"
                             onClick={() => handleDelete(saved.id)}
