@@ -252,40 +252,85 @@ function Index() {
               </h3>
               <span
                 className={`rounded px-2 py-0.5 text-[10px] font-bold ${
-                  isTranslated
+                  result
                     ? "bg-emerald-100 text-emerald-700"
                     : "bg-muted text-muted-foreground"
                 }`}
               >
-                {isTranslated ? "PRONTO" : "AGUARDANDO"}
+                {isLoading ? "TRADUZINDO..." : result ? "PRONTO" : "AGUARDANDO"}
               </span>
             </div>
 
             <div className="rounded-2xl border border-primary/10 bg-primary/5 p-8">
-              <p className="text-2xl font-medium leading-relaxed text-primary lg:text-3xl">
-                {result || "Clique em traduzir para ver o resultado aqui..."}
-              </p>
-              {isTranslated && (
-                <div className="mt-6 flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => speak(result)}
-                    className="flex h-10 w-28 cursor-pointer items-center justify-center gap-2 rounded-full bg-card text-xs font-bold text-primary shadow-sm transition-colors hover:bg-primary hover:text-primary-foreground"
-                  >
-                    <Volume2 className="size-4" />
-                    OUVIR
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navigator.clipboard.writeText(result)}
-                    className="flex h-10 w-28 cursor-pointer items-center justify-center rounded-full bg-card text-xs font-bold text-primary shadow-sm transition-colors hover:bg-primary hover:text-primary-foreground"
-                  >
-                    COPIAR
-                  </button>
+              {error && (
+                <p className="text-base font-medium text-destructive">{error}</p>
+              )}
+
+              {!error && !result && (
+                <p className="text-xl font-medium leading-relaxed text-muted-foreground">
+                  {isLoading
+                    ? "Traduzindo sua frase..."
+                    : "Clique em traduzir para ver o resultado aqui..."}
+                </p>
+              )}
+
+              {!error && result && (
+                <div className="space-y-5">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                      Português
+                    </p>
+                    <p className="mt-1 text-lg text-foreground">
+                      {result.portuguese}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                      Inglês
+                    </p>
+                    <p className="mt-1 text-2xl font-semibold leading-relaxed text-primary lg:text-3xl">
+                      {result.english}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                      Pronúncia
+                    </p>
+                    <p className="mt-1 text-lg italic text-secondary">
+                      {result.pronunciation}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                      Contexto
+                    </p>
+                    <p className="mt-1 text-base font-medium text-foreground">
+                      {result.context}
+                    </p>
+                  </div>
+
+                  <div className="mt-6 flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => speak(result.english)}
+                      className="flex h-10 w-28 cursor-pointer items-center justify-center gap-2 rounded-full bg-card text-xs font-bold text-primary shadow-sm transition-colors hover:bg-primary hover:text-primary-foreground"
+                    >
+                      <Volume2 className="size-4" />
+                      OUVIR
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => navigator.clipboard.writeText(result.english)}
+                      className="flex h-10 w-28 cursor-pointer items-center justify-center rounded-full bg-card text-xs font-bold text-primary shadow-sm transition-colors hover:bg-primary hover:text-primary-foreground"
+                    >
+                      COPIAR
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
           </div>
+
         </div>
 
         <div className="mt-20">
