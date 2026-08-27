@@ -1,7 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { Volume2, Trash2 } from "lucide-react";
 import studyScene from "../assets/study-scene.jpg";
+import {
+  translatePhrase,
+  type TranslationResult,
+} from "../lib/translate.functions";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
